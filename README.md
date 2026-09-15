@@ -19,11 +19,14 @@ L'application est accessible en ligne (GitHub Pages) :
 
 ## Fonctionnalités
 
-- **Sauvegarde automatique** — les réponses sont conservées dans le navigateur (localStorage) à chaque saisie.
+- **Profils protégés par code PIN** — chaque personne crée son propre profil (nom + code PIN de 4 à 8 chiffres) et ne voit que ses propres réponses. Le PIN n'est jamais stocké en clair : il est haché (SHA-256 + sel) côté navigateur.
+- **Isolement des données** — les réponses de chaque profil sont enregistrées sous une clé localStorage dédiée ; l'application s'ouvre toujours sur l'écran de connexion, jamais directement dans le contenu.
+- **Sauvegarde automatique** — les réponses sont conservées dans le navigateur (localStorage) à chaque saisie. *Les données restent sur l'appareil (pas de synchronisation entre appareils).*
 - **Progression visuelle** — barre globale + pourcentage par étape.
-- **Navigation** — clic, boutons Précédent/Suivant ou flèches ←/→ du clavier.
-- **Export Markdown** — copie ou téléchargement d'une note structurée (frontmatter, tableaux, checklists), prête pour Obsidian.
-- **Réinitialisation** — avec confirmation.
+- **Navigation** — clic dans la barre latérale, boutons Précédent/Suivant ou flèches ←/→ du clavier.
+- **Export Markdown** — copie ou téléchargement d'une note structurée (frontmatter, tableaux, checklists), prête pour Obsidian, avec l'impression PDF en un clic.
+- **Réinitialisation** — avec modale de confirmation (par profil).
+- **Sécurité** — politique CSP stricte, échappement systématique des saisies, données assainies et bornées au chargement.
 - **100 % hors-ligne** — zéro dépendance, zéro build, un seul fichier `index.html`.
 
 ## Utilisation locale
