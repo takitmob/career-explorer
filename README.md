@@ -6,7 +6,7 @@ Application web **mono-fichier** qui guide le processus complet d'exploration de
 
 L'application est accessible en ligne (GitHub Pages) :
 
-**`https://<votre-utilisateur>.github.io/career-explorer/`**
+**https://takitmob.github.io/career-explorer/**
 
 ## Le parcours en 4 étapes
 
