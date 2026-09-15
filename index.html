@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exploration de carrière — Parcours interactif</title>
+  <style>
+    /* ======================================================
+       DESIGN SYSTEM
+       ====================================================== */
+    :root {
+      --clr-primary: #4f46e5;
+      --clr-primary-light: #818cf8;
+      --clr-primary-bg: #eef2ff;
+      --clr-success: #16a34a;
+      --clr-success-bg: #dcfce7;
+      --clr-warn: #ea580c;
+      --clr-warn-bg: #fff7ed;
+      --clr-danger: #dc2626;
+      --clr-danger-bg: #fef2f2;
+      --clr-text: #1e1e2e;
+      --clr-text-muted: #6b7280;
+      --clr-bg: #f5f6fa;
+      --clr-card: #ffffff;
+      --clr-border: #e5e7eb;
+      --clr-sidebar: #fafbfc;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+      --font: -apple-system, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+      --mono: ui-monospace, "SF Mono", "Menlo", "Consolas", monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-family: var(--font); color: var(--clr-text); background: var(--clr-bg); line-height: 1.55; }
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    img { max-width: 100%; }
+    a { color: var(--clr-primary); }
+    /* ---- topbar ---- */
+    .topbar { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 16px;
+      padding: 12px 24px; background: var(--clr-card); border-bottom: 1px solid var(--clr-border);
+      box-shadow: var(--shadow); flex-wrap: wrap; }
+    .topbar-brand { display: flex; flex-direction: column; gap: 0; min-width: 0; flex: 1; }
+    .topbar-title { font-size: 1.15rem; font-weight: 700; white-space: nowrap; }
+    .topbar-sub { font-size: .78rem; color: var(--clr-text-muted); }
+    .progress-wrap { display: flex; align-items: center; gap: 8px; min-width: 140px; }
+    .progress-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--clr-border); overflow: hidden; min-width: 80px; }
+    .progress-fill { height: 100%; width: 0; border-radius: 4px; background: var(--clr-primary); transition: width .25s ease; }
+    .progress-pct { font-size: .82rem; font-weight: 600; min-width: 32px; text-align: right; }
+    .save-badge { font-size: .75rem; color: var(--clr-success); white-space: nowrap; opacity: 0; transition: opacity .3s; }
+    .save-badge.visible { opacity: 1; }
+    /* ---- layout ---- */
+    .layout { display: flex; flex: 1; }
+    /* ---- sidebar ---- */
+    .sidebar { width: 280px; min-width: 220px; background: var(--clr-sidebar); border-right: 1px solid var(--clr-border);
+      display: flex; flex-direction: column; padding: 16px; gap: 8px; overflow-y: auto; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .step-btn { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: none; border-radius: var(--radius-sm);
+      background: transparent; cursor: pointer; text-align: left; transition: background .15s; }
+    .step-btn:hover { background: #f0f0f4; }
+    .step-btn.active { background: var(--clr-primary-bg); }
+    .step-num { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%;
+      font-size: .78rem; font-weight: 700; background: var(--clr-border); color: var(--clr-text-muted); flex-shrink: 0; transition: background .2s, color .2s; }
+    .step-btn.active .step-num { background: var(--clr-primary); color: #fff; }
+    .step-btn.completed .step-num { background: var(--clr-success); color: #fff; }
+    .step-labels { display: flex; flex-direction: column; }
+    .step-label { font-size: .85rem; font-weight: 600; color: var(--clr-text); }
+    .step-pct { font-size: .72rem; color: var(--clr-text-muted); }
+    .sidebar-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--clr-border); }
+    /* ---- main ---- */
+    .main { flex: 1; overflow-y: auto; padding: 24px 32px 100px; display: flex; flex-direction: column; gap: 24px; }
+    .section-step { display: none; flex-direction: column; gap: 24px; }
+    .section-step.active { display: flex; }
+    /* ---- cards ---- */
+    .card { background: var(--clr-card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }
+    .card h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+    .card h3 { font-size: .95rem; font-weight: 600; color: var(--clr-text-muted); margin-bottom: 12px; }
+    .card-sub { font-size: .8rem; color: var(--clr-text-muted); margin-bottom: 16px; }
+    .card + .card { }
+    /* ---- typography ---- */
+    .step-title { font-size: 1.35rem; font-weight: 700; }
+    .step-desc { font-size: .9rem; color: var(--clr-text-muted); }
+    /* ---- forms ---- */
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: .85rem; font-weight: 600; }
+    .field .help { font-size: .75rem; color: var(--clr-text-muted); }
+    input[type="text"], input[type="date"], select, textarea {
+      font-family: var(--font); font-size: .9rem; padding: 8px 10px; border: 1px solid var(--clr-border);
+      border-radius: var(--radius-sm); background: #fff; color: var(--clr-text); outline: none; transition: border-color .15s; }
+    input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus { border-color: var(--clr-primary); }
+    textarea { resize: vertical; min-height: 64px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > .field { flex: 1; min-width: 140px; }
+    /* ---- buttons ---- */
+    .btn { font-family: var(--font); font-size: .85rem; font-weight: 600; padding: 8px 16px; border: none; border-radius: var(--radius-sm);
+      cursor: pointer; transition: background .15s, opacity .15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--clr-primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #4338ca; }
+    .btn-secondary { background: var(--clr-border); color: var(--clr-text); }
+    .btn-secondary:hover:not(:disabled) { background: #d1d5db; }
+    .btn-success { background: var(--clr-success); color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #15803d; }
+    .btn-danger { background: var(--clr-danger); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+    .btn-ghost { background: transparent; color: var(--clr-primary); }
+    .btn-ghost:hover:not(:disabled) { background: var(--clr-primary-bg); }
+    .btn-sm { padding: 5px 10px; font-size: .78rem; }
+    .btn-icon { padding: 5px 8px; font-size: 1rem; line-height: 1; }
+    /* ---- values grid ---- */
+    .values-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 10px; }
+    .value-card { padding: 10px 12px; border: 2px solid var(--clr-border); border-radius: var(--radius-sm); cursor: pointer;
+      transition: border-color .15s, background .15s; font-size: .85rem; text-align: left; background: #fff; }
+    .value-card:hover { border-color: var(--clr-primary-light); }
+    .value-card.selected { border-color: var(--clr-primary); background: var(--clr-primary-bg); }
+    .value-card .vc-check { color: var(--clr-primary); margin-right: 4px; font-weight: 700; }
+    .value-card .vc-name { font-weight: 600; }
+    .value-card .vc-desc { font-size: .75rem; color: var(--clr-text-muted); margin-top: 3px; }
+    /* ---- skills / dynamic rows ---- */
+    .row-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--clr-border); }
+    .row-item:last-child { border-bottom: none; }
+    .row-item .field { min-width: 0; }
+    .row-item .field-skill { flex: 1.8; }
+    .row-item .field-rating { flex: 0.8; min-width: 70px; }
+    .row-item .field-dev { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding-top: 22px; font-size: .8rem; }
+    .row-item .field-del { padding-top: 22px; flex: 0 0 auto; }
+    /* ---- plan rows ---- */
+    .plan-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--clr-border); }
+    .plan-row:last-child { border-bottom: none; }
+    .plan-row .row-fields { flex: 1; display: flex; gap: 10px; flex-wrap: wrap; }
+    .plan-row .field { flex: 1; min-width: 120px; }
+    .plan-row .field-wider { flex: 2; min-width: 200px; }
+    .plan-row .row-num { flex: 0 0 24px; text-align: center; color: var(--clr-text-muted); font-size: .8rem; padding-top: 22px; font-weight: 700; }
+    .plan-row .row-del { flex: 0 0 auto; padding-top: 20px; }
+    /* ---- checkbox list ---- */
+    .checklist-item { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: var(--radius-sm);
+      transition: background .15s; cursor: pointer; }
+    .checklist-item:hover { background: #f9fafb; }
+    .checklist-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--clr-primary); cursor: pointer; flex-shrink: 0; }
+    .checklist-label { font-size: .9rem; }
+    /* ---- nav buttons footer ---- */
+    .nav-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; margin-top: auto; }
+    /* ---- toast ---- */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--clr-text); color: #fff;
+      padding: 10px 20px; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 500; z-index: 999;
+      transition: transform .3s ease; pointer-events: none; }
+    .toast.visible { transform: translateX(-50%) translateY(0); }
+    /* ---- modal ---- */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200;
+      justify-content: center; align-items: flex-end; padding: 24px; }
+    .modal-overlay.visible { display: flex; }
+    .modal-box { background: var(--clr-card); border-radius: var(--radius) var(--radius) 0 0; width: 100%; max-width: 720px;
+      max-height: 85vh; display: flex; flex-direction: column; box-shadow: var(--shadow-md); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--clr-border); }
+    .modal-header h3 { font-size: 1rem; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+    .modal-body textarea { width: 100%; height: 100%; min-height: 300px; font-family: var(--mono); font-size: .78rem; line-height: 1.55; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--clr-border); }
+    /* ---- intro banner ---- */
+    .intro-banner { background: linear-gradient(135deg, var(--clr-primary-bg), #fff 60%); border-left: 4px solid var(--clr-primary); }
+    .intro-steps { list-style: none; counter-reset: intro; padding: 0; margin-top: 10px; }
+    .intro-steps li { counter-increment: intro; padding-left: 28px; position: relative; margin-bottom: 6px; font-size: .88rem; color: var(--clr-text); }
+    .intro-steps li::before { content: counter(intro); position: absolute; left: 0; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--clr-primary); color: #fff; font-size: .72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    /* ---- responsive ---- */
+    @media (max-width: 820px) {
+      .sidebar { width: 100%; min-width: 100%; flex-direction: row; padding: 8px 12px; border-right: none; border-bottom: 1px solid var(--clr-border);
+        overflow-x: auto; overflow-y: hidden; gap: 4px; }
+      .sidebar-nav { flex-direction: row; }
+      .step-btn { padding: 6px 10px; flex-direction: column; align-items: center; gap: 4px; min-width: 72px; }
+      .step-label { font-size: .72rem; text-align: center; white-space: nowrap; }
+      .step-pct { display: none; }
+      .sidebar-actions { display: none; }
+      .main { padding: 16px; }
+      .topbar { padding: 10px 16px; }
+      .row, .plan-row .row-fields { flex-direction: column; }
+      .row-item { flex-wrap: wrap; }
+      .row-item .field { min-width: 100% !important; }
+      .row-item .field-dev, .row-item .field-del { padding-top: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== TOPBAR ==================== -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-title">Exploration de carrière</span>
+      <span class="topbar-sub" id="stepLabel">Étape 1 / 4</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <span class="progress-pct" id="progressPct">0 %</span>
+    </div>
+    <span class="save-badge" id="saveBadge">Enregistré</span>
+  </header>
+
+  <!-- ==================== LAYOUT ==================== -->
+  <div class="layout">
+
+    <!-- ---- sidebar ---- -->
+    <aside class="sidebar">
+      <nav class="sidebar-nav" id="sidebarNav" role="tablist" aria-label="Étapes du parcours"></nav>
+      <div class="sidebar-actions">
+        <button class="btn btn-primary" id="btnExport">Exporter en Markdown</button>
+        <button class="btn btn-secondary" id="btnReset">Réinitialiser</button>
+      </div>
+    </aside>
+
+    <!-- ---- main content ---- -->
+    <div class="main">
+
+      <!-- ===== ÉTAPE 1 : AUTO-ÉVALUATIONS ===== -->
+      <section class="section-step" id="section-0">
+        <h1 class="step-title">Étape 1 — Auto-évaluations</h1>
+        <p class="step-desc">Source : <em>Assignment 1 — Self-Assessments</em></p>
+
+        <!-- intro banner -->
+        <div class="card intro-banner">
+          <h2>Bienvenue dans votre parcours d'exploration de carrière</h2>
+          <p class="card-sub">Ce processus en 4 étapes vous guide pour comprendre vos aspirations, évaluer vos options et bâtir un plan d'action concret.</p>
+          <ol class="intro-steps">
+            <li><strong>Auto-évaluations</strong> — Identifiez vos valeurs, compétences et intérêts.</li>
+            <li><strong>Évaluation des options</strong> — Examinez des pistes de carrière concrètes.</li>
+            <li><strong>Plan de carrière</strong> — Définissez votre vision, vos objectifs et un plan d'action.</li>
+            <li><strong>Checklist chercheur d'emploi</strong> — Mettez en place votre stratégie de recherche.</li>
+          </ol>
+        </div>
+
+        <!-- 1a. Valeurs -->
+        <div class="card">
+          <h2>Valeurs</h2>
+          <p class="card-sub">Cochez ce qui compte le plus pour vous. <strong>Sélectionnez jusqu'à 10 valeurs.</strong></p>
+          <div class="values-grid" id="valuesGrid"></div>
+        </div>
+
+        <!-- 1b. Compétences -->
+        <div class="card">
+          <h2>Compétences</h2>
+          <p class="card-sub">Listez vos compétences principales (objectif : 5 à 10). Pour chaque compétence, notez votre degré d'appréciation (1 à 10) et indiquez si vous souhaitez la développer davantage.</p>
+          <div id="competencesList"></div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-ghost btn-sm" id="btnAddCompetence">+ Ajouter une compétence</button>
+          </div>
+        </div>
+
+        <!-- 1c. Intérêts -->
+        <div class="card">
+          <h2>Intérêts</h2>
+          <p class="card-sub">Décrivez vos expériences de travail passées que vous avez le plus appréciées, ainsi que vos activités et centres d'intérêt en dehors du travail.</p>
+
+          <h3>Expériences de travail appréciées (environ 5)</h3>
+          <div id="interetsExperiences"></div>
+
+          <h3 style="margin-top:16px;">Activités et centres d'intérêt</h3>
+          <div class="row" style="margin-top:8px;">
+            <div class="field">
+              <label for="inActivites">Activités et loisirs</label>
+              <textarea id="inActivites" rows="3" placeholder="Ce que vous faites pour le plaisir, vos hobbies..."></textarea>
+            </div>
+            <div class="field">
+              <label for="inSujets">Sujets et causes qui vous passionnent</label>
+              <textarea id="inSujets" rows="3" placeholder="Sujets que vous lisez, suivez ou causez pour laquelle vous vous investissez..."></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ÉTAPE 2 : ÉVALUATION DES OPTIONS DE CARRIÈRE ===== -->
+      <section class="section-step" id="section-1">
+        <h1 class="step-title">Étape 2 — Évaluation des options de carrière</h1>
+        <p class="step-desc">Source : <em>Assignment 2 — Evaluating Career Options</em></p>
+        <div class="card">
+          <h2>Fiche d'évaluation d'une option de carrière</h2>
+          <p class="card-sub">Remplissez cette fiche pour chaque option de carrière que vous souhaitez évaluer.</p>
+          <div class="row">
+            <div class="field"><label for="optObjectif">Objectif de carrière</label><input type="text" id="optObjectif" placeholder="Ex : Devenir chef de projet digital"></div>
+            <div class="field"><label for="optRole">Rôle ciblé</label><input type="text" id="optRole" placeholder="Ex : Product Manager"></div>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <div class="field"><label for="optLieu">Lieu souhaité</label><input type="text" id="optLieu" placeholder="Ex : Paris / Remote"></div>
+            <div class="field"><label for="optDispo">Disponibilité des postes</label><input type="text" id="optDispo" placeholder="Ex : Nombreux, secteur en croissance"></div>
+          </div>
+          <div class="field" style="margin-top:12px;">
+            <label for="optValeurs">Correspondance avec vos valeurs</label>
+            <textarea id="optValeurs" rows="3" placeholder="Dans quelle mesure ce choix correspond-il à vos valeurs prioritaires ?"></textarea>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="optComp">Compétences clés requises</label>
+            <textarea id="optComp" rows="2" placeholder="Quelles sont les compétences principales recherchées pour ce rôle ?"></textarea>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="optAutoEval">Auto-évaluation sur ces compétences</label>
+            <textarea id="optAutoEval" rows="2" placeholder="Comment vous évaluez-vous sur ces compétences ?"></textarea>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <div class="field"><label for="optForces">1 à 2 forces à exploiter davantage</label><input type="text" id="optForces" placeholder="Ex : communication, analyse"></div>
+            <div class="field"><label for="optDevCourt">Compétence à développer à court terme</label><input type="text" id="optDevCourt" placeholder="Ex : gestion de projet agile"></div>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="optDevLong">Compétence à développer à long terme</label>
+            <input type="text" id="optDevLong" placeholder="Ex : leadership stratégique">
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ÉTAPE 3 : PLAN DE CARRIÈRE ===== -->
+      <section class="section-step" id="section-2">
+        <h1 class="step-title">Étape 3 — Plan de carrière</h1>
+        <p class="step-desc">Source : <em>Assignment 3 — Career Plan</em></p>
+
+        <!-- Partie I : Vision -->
+        <div class="card">
+          <h2>Partie I — Objectifs et Vision</h2>
+          <p class="card-sub">Que souhaitez-vous accomplir à court terme et à long terme ?</p>
+          <div class="field">
+            <label for="planCourt">Objectifs à court terme (prochains 1-2 ans)</label>
+            <textarea id="planCourt" rows="3" placeholder="Décrivez ce que vous voulez accomplir à court terme..."></textarea>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="planMoyen">Objectifs à moyen terme (2 à 5 ans)</label>
+            <textarea id="planMoyen" rows="3" placeholder="Décrivez vos objectifs pour les 2 à 5 prochaines années..."></textarea>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="planLong">Objectifs à long terme (5 ans ou plus)</label>
+            <textarea id="planLong" rows="3" placeholder="Décrivez votre ambition à long terme..."></textarea>
+          </div>
+          <div class="field" style="margin-top:8px;">
+            <label for="planVision">Énoncé de vision (1 à 3 phrases)</label>
+            <textarea id="planVision" rows="3" placeholder="Résumez vos objectifs court et long terme en une vision concise..."></textarea>
+          </div>
+        </div>
+
+        <!-- Partie II : Valeurs -->
+        <div class="card">
+          <h2>Partie II — Valeurs</h2>
+          <p class="card-sub">Quels principes ou croyances sont essentiels pour poursuivre votre vision ? Listez 3 à 4 valeurs issues de votre auto-évaluation.</p>
+          <div id="planValeursList"></div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-ghost btn-sm" id="btnAddPlanValeur">+ Ajouter une valeur</button>
+          </div>
+        </div>
+
+        <!-- Partie III : Plan d'action -->
+        <div class="card">
+          <h2>Partie III — Plan d'action</h2>
+          <p class="card-sub">Listez 5 à 8 objectifs SMART (Specific, Measurable, Achievable, Relevant, Time-bound) avec une mesure de réussite et une échéance.</p>
+          <div id="planObjectifsList"></div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-ghost btn-sm" id="btnAddPlanObjectif">+ Ajouter un objectif</button>
+          </div>
+        </div>
+
+        <!-- Partie IV : Obstacles -->
+        <div class="card">
+          <h2>Partie IV — Obstacles</h2>
+          <p class="card-sub">Identifiez 3 à 5 défis potentiels et décrivez comment vous comptez les surmonter.</p>
+          <div id="planObstaclesList"></div>
+          <div style="margin-top:10px;">
+            <button class="btn btn-ghost btn-sm" id="btnAddPlanObstacle">+ Ajouter un obstacle</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ÉTAPE 4 : CHECKLIST CHERCHEUR D'EMPLOI ===== -->
+      <section class="section-step" id="section-3">
+        <h1 class="step-title">Étape 4 — Checklist chercheur d'emploi</h1>
+        <p class="step-desc">Source : <em>Assignment 4 — Job Seeker Checklist</em></p>
+        <div class="card">
+          <h2>Actions à compléter</h2>
+          <div id="checklistGrid"></div>
+        </div>
+      </section>
+
+      <!-- ---- navigation ---- -->
+      <div class="nav-footer" id="navFooter">
+        <button class="btn btn-secondary" id="btnPrev" disabled>Précédent</button>
+        <button class="btn btn-primary" id="btnNext">Suivant</button>
+      </div>
+
+    </div><!-- /.main -->
+  </div><!-- /.layout -->
+
+  <!-- ==================== EXPORT MODAL ==================== -->
+  <div class="modal-overlay" id="modalExport">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Exporter vos résultats</h3>
+        <button class="btn btn-icon btn-ghost" id="btnCloseModal" aria-label="Fermer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="exportMarkdown" readonly aria-label="Aperçu Markdown"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCloseModal2">Fermer</button>
+        <button class="btn btn-success" id="btnCopy">Copier le texte</button>
+        <button class="btn btn-primary" id="btnDownload">Télécharger .md</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST ==================== -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ==================== SCRIPT ==================== -->
+  <script>
+  'use strict';
+
+  /* =============================================================
+     1. DONNÉES SOURCES (issues des 4 PDF, traduites en français)
+     ============================================================= */
+  const VALEURS = [
+    { id:  0, nom: 'Autonomie',                  desc: 'Liberté de déterminer la nature de mon travail et mon temps sans direction significative d\'autrui ; flexibilité' },
+    { id:  1, nom: 'Variété / Changement',       desc: 'Changements fréquents de responsabilités, de tâches ou de cadre' },
+    { id:  2, nom: 'Prévisibilité et structure',  desc: 'Les tâches ne changent pas, le travail est organisé' },
+    { id:  3, nom: 'Équilibre vie pro / perso',   desc: 'Temps pour profiter de la vie en dehors du travail' },
+    { id:  4, nom: 'Être responsable',            desc: 'Avoir une autorité directe ou indirecte sur d\'autres personnes ou projets ; prendre des décisions' },
+    { id:  5, nom: 'Influence',                   desc: 'Avoir l\'opportunité d\'influencer d\'autres personnes à travers plusieurs équipes' },
+    { id:  6, nom: 'Manager les autres',          desc: 'Être responsable du travail et de la performance d\'autrui' },
+    { id:  7, nom: 'Travailler seul',             desc: 'Travailler principalement seul sur les projets' },
+    { id:  8, nom: 'Travailler en équipe',        desc: 'Travailler avec un groupe partageant les mêmes objectifs, obtenir des résultats ensemble' },
+    { id:  9, nom: 'Gain financier',              desc: 'Avoir des récompenses financières significatives' },
+    { id: 10, nom: 'Sécurité de l\'emploi',       desc: 'Avoir confiance dans la stabilité du poste' },
+    { id: 11, nom: 'Être le meilleur',            desc: 'Être un expert, recherché par les autres pour ses connaissances approfondies' },
+    { id: 12, nom: 'Reconnaissance',              desc: 'Recevoir des retours positifs pour un travail bien fait' },
+    { id: 13, nom: 'Ambition',                    desc: 'Progresser rapidement grâce à des opportunités de croissance' },
+    { id: 14, nom: 'Faire la différence',         desc: 'Avoir un impact positif' },
+    { id: 15, nom: 'Aider les autres',            desc: 'Apporter du soutien aux autres' },
+    { id: 16, nom: 'Créativité',                  desc: 'Être innovant, générer de nouvelles idées' },
+    { id: 17, nom: 'Résolution de problèmes',     desc: 'Résoudre des problèmes et identifier des solutions' },
+    { id: 18, nom: 'Aventure',                    desc: 'Explorer et vivre de nouvelles expériences' },
+    { id: 19, nom: 'Amitiés',                     desc: 'Relations personnelles au travail' }
+  ];
+
+  const BANQUE_COMPETENCES = [
+    'Communication', 'Leadership', 'Gestion de projet', 'Travail d\'équipe',
+    'Résolution de problèmes', 'Pensée critique', 'Adaptabilité', 'Créativité',
+    'Gestion du temps', 'Prise de parole en public', 'Négociation',
+    'Analyse de données', 'Programmation', 'Design', 'Rédaction',
+    'Service client', 'Gestion financière', 'Langues étrangères', 'Marketing',
+    'Vente', 'Planification stratégique', 'Intelligence émotionnelle',
+    'SQL', 'Outils IA', 'Data visualisation', 'Présentation'
+  ];
+
+  const CHECKLIST = [
+    { id: 0, texte: 'Faire réaliser une photo professionnelle (headshot)' },
+    { id: 1, texte: 'Mettre à jour les profils sur les réseaux sociaux : X, LinkedIn, Trailhead' },
+    { id: 2, texte: 'Mettre à jour le CV' },
+    { id: 3, texte: 'Faire relire le CV (par un professionnel, des amis ou de la famille)' },
+    { id: 4, texte: 'Préparer un elevator pitch' },
+    { id: 5, texte: 'Rechercher les entreprises cibles' },
+    { id: 6, texte: 'Suivre les entreprises qui vous intéressent sur X et LinkedIn' }
+  ];
+
+  const STEPS = [
+    { titre: 'Auto-évaluations',    sub: 'Assignment 1' },
+    { titre: 'Options de carrière',  sub: 'Assignment 2' },
+    { titre: 'Plan de carrière',     sub: 'Assignment 3' },
+    { titre: 'Checklist emploi',     sub: 'Assignment 4' }
+  ];
+
+  /* =============================================================
+     2. ÉTAT, PERSISTANCE, HELPERS
+     ============================================================= */
+  const STORAGE_KEY = 'exploration-carriere-v1';
+  let S = etatDefaut();
+  let saveTimer = null;
+
+  /** État par défaut (mêmes structures que les PDF) */
+  function etatDefaut() {
+    return {
+      step: 0,
+      valeurs: VALEURS.map(() => false),
+      competences: [],
+      interets: {
+        experiences: Array.from({ length: 5 }, () => ({ activite: '', apprecie: '' })),
+        activites: '', sujets: ''
+      },
+      option: {
+        objectif: '', role: '', lieu: '', disponibilite: '',
+        correspondanceValeurs: '', competencesRequises: '', autoEvaluation: '',
+        forces: '', aDevelopperCourt: '', aDevelopperLong: ''
+      },
+      plan: {
+        court: '', moyen: '', long: '', vision: '',
+        valeurs: [{ valeur: '', signification: '' }],
+        objectifs: Array.from({ length: 5 }, () => ({ objectif: '', mesure: '', echeance: '' })),
+        obstacles: [{ defi: '', solution: '' }]
+      },
+      checklist: CHECKLIST.map(() => false)
+    };
+  }
+
+  /** Lecture depuis localStorage */
+  function charger() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return etatDefaut();
+      const d = JSON.parse(raw);
+      const def = etatDefaut();
+      // Fusionne avec défaut pour garantir la forme
+      const merged = { ...def, ...d };
+      merged.valeurs = Array.isArray(d.valeurs) && d.valeurs.length === 20 ? d.valeurs : def.valeurs;
+      merged.competences = Array.isArray(d.competences) ? d.competences : def.competences;
+      merged.interets = { ...def.interets, ...(d.interets || {}) };
+      merged.interets.experiences = Array.isArray(d.interets?.experiences) && d.interets.experiences.length >= 3
+        ? d.interets.experiences.map(e => ({ activite: '', apprecie: '', ...e }))
+        : def.interets.experiences;
+      merged.option = { ...def.option, ...(d.option || {}) };
+      merged.plan = { ...def.plan, ...(d.plan || {}) };
+      merged.plan.valeurs = Array.isArray(d.plan?.valeurs) && d.plan.valeurs.length >= 1
+        ? d.plan.valeurs.map(v => ({ valeur: '', signification: '', ...v }))
+        : def.plan.valeurs;
+      merged.plan.objectifs = Array.isArray(d.plan?.objectifs) && d.plan.objectifs.length >= 3
+        ? d.plan.objectifs.map(o => ({ objectif: '', mesure: '', echeance: '', ...o }))
+        : def.plan.objectifs;
+      merged.plan.obstacles = Array.isArray(d.plan?.obstacles) && d.plan.obstacles.length >= 1
+        ? d.plan.obstacles.map(o => ({ defi: '', solution: '', ...o }))
+        : def.plan.obstacles;
+      merged.checklist = Array.isArray(d.checklist) && d.checklist.length === 7 ? d.checklist : def.checklist;
+      return merged;
+    } catch { return etatDefaut(); }
+  }
+
+  /** Sauvegarde dans localStorage (debounce) */
+  function sauvegarder() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+        montrerSaveBadge();
+      } catch (e) {
+        afficherToast('Erreur de sauvegarde : ' + e.message);
+      }
+    }, 250);
+  }
+
+  function montrerSaveBadge() {
+    const el = document.getElementById('saveBadge');
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 1800);
+  }
+
+  /** Chemin de données — get/set dynamique */
+  function getByPath(path) {
+    return path.split('.').reduce((o, k) => (o != null ? o[k] : undefined), S);
+  }
+  function setByPath(path, val) {
+    const parts = path.split('.');
+    const last = parts.pop();
+    const obj = parts.reduce((o, k) => { if (o[k] == null) o[k] = {}; return o[k]; }, S);
+    obj[last] = val;
+  }
+
+  /** Toast */
+  let toastTimer = null;
+  function afficherToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('visible'), 2600);
+  }
+
+  /** Échappement pour HTML */
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /** Échappement pour Markdown (légère) */
+  function escMd(s) {
+    return String(s || '').replace(/\|/g, '\\|');
+  }
+
+  /* =============================================================
+     3. CALCUL DE PROGRESSION
+     ============================================================= */
+  function pctEtape(idx) {
+    switch (idx) {
+      case 0: {
+        const sel = S.valeurs.filter(Boolean).length;
+        const vPct = Math.min(sel / 10, 1);
+        const compOk = S.competences.filter(c => c.nom && c.nom.trim()).length;
+        const cPct = Math.min(compOk / 5, 1);
+        const expOk = S.interets.experiences.filter(e => (e.activite||'').trim() || (e.apprecie||'').trim()).length;
+        const ePctExp = Math.min(expOk / 5, 1);
+        const ePct = 0.65 * ePctExp + 0.35 * (0.5 * (S.interets.activites.trim() ? 1 : 0) + 0.5 * (S.interets.sujets.trim() ? 1 : 0));
+        return Math.round(100 * (0.4 * vPct + 0.35 * cPct + 0.25 * ePct));
+      }
+      case 1: {
+        const fields = ['objectif','role','lieu','disponibilite','correspondanceValeurs',
+          'competencesRequises','autoEvaluation','forces','aDevelopperCourt','aDevelopperLong'];
+        const ok = fields.filter(f => (S.option[f] || '').trim()).length;
+        return Math.round(100 * ok / fields.length);
+      }
+      case 2: {
+        const vision = ['court','moyen','long','vision'].filter(f => (S.plan[f]||'').trim()).length / 4;
+        const pv = S.plan.valeurs.filter(v => (v.valeur||'').trim() && (v.signification||'').trim()).length;
+        const pvPct = Math.min(pv / 3, 1);
+        const po = S.plan.objectifs.filter(o => (o.objectif||'').trim()).length;
+        const poPct = Math.min(po / 5, 1);
+        const pOb = S.plan.obstacles.filter(o => (o.defi||'').trim()).length;
+        const pObPct = Math.min(pOb / 3, 1);
+        return Math.round(100 * (0.25 * vision + 0.2 * pvPct + 0.35 * poPct + 0.2 * pObPct));
+      }
+      case 3:
+        return Math.round(100 * S.checklist.filter(Boolean).length / 7);
+      default: return 0;
+    }
+  }
+
+  function pctGlobal() {
+    const p = STEPS.map((_, i) => pctEtape(i));
+    return Math.round(p.reduce((a, b) => a + b, 0) / p.length);
+  }
+
+  /* =============================================================
+     4. RENDU DU SIDEBAR
+     ============================================================= */
+
+  /** Correspondance ID HTML → clés d'état pour l'étape 2 */
+  const OPT_KEYS = {
+    optObjectif: 'objectif', optRole: 'role', optLieu: 'lieu', optDispo: 'disponibilite',
+    optValeurs: 'correspondanceValeurs', optComp: 'competencesRequises', optAutoEval: 'autoEvaluation',
+    optForces: 'forces', optDevCourt: 'aDevelopperCourt', optDevLong: 'aDevelopperLong'
+  };
+
+  function initSidebar() {
+    const nav = document.getElementById('sidebarNav');
+    nav.innerHTML = STEPS.map((s, i) => `
+      <button class="step-btn" data-step="${i}" role="tab" aria-selected="false" aria-controls="section-${i}">
+        <span class="step-num" id="stepNum${i}">${i + 1}</span>
+        <span class="step-labels">
+          <span class="step-label">${esc(s.titre)}</span>
+          <span class="step-pct" id="stepPct${i}">0 %</span>
+        </span>
+      </button>
+    `).join('');
+    // Écoute des clics
+    nav.querySelectorAll('.step-btn').forEach(btn => {
+      btn.addEventListener('click', () => afficherEtape(+btn.dataset.step));
+    });
+  }
+
+  function mettreAJourSidebar() {
+    STEPS.forEach((_, i) => {
+      const btn = document.querySelector(`.step-btn[data-step="${i}"]`);
+      const pct = pctEtape(i);
+      btn.classList.toggle('active', i === S.step);
+      btn.classList.toggle('completed', i !== S.step && pct >= 95);
+      btn.setAttribute('aria-selected', i === S.step);
+      document.getElementById(`stepPct${i}`).textContent = pct + ' %';
+    });
+    document.getElementById('stepLabel').textContent = `Étape ${S.step + 1} / 4 — ${STEPS[S.step].titre}`;
+    // Navigation
+    document.getElementById('btnPrev').disabled = S.step === 0;
+    document.getElementById('btnNext').textContent = S.step === 3 ? 'Terminer' : 'Suivant';
+  }
+
+  function mettreAJourProgression() {
+    const p = pctGlobal();
+    document.getElementById('progressFill').style.width = p + '%';
+    const pctEl = document.getElementById('progressPct');
+    pctEl.textContent = p + ' %';
+    document.getElementById('progressFill').closest('[role="progressbar"]').setAttribute('aria-valuenow', p);
+  }
+
+  /* =============================================================
+     5. RENDU DES DYNAMIQUES (valeurs, compétences, plan rows)
+     ============================================================= */
+
+  // ---- Valeurs ----
+  function renderValeurs() {
+    const grid = document.getElementById('valuesGrid');
+    const sel = S.valeurs.filter(Boolean).length;
+    const maxReached = sel >= 10;
+    grid.innerHTML = VALEURS.map((v, i) => {
+      const checked = S.valeurs[i];
+      return `<button type="button" class="value-card${checked ? ' selected' : ''}" data-vidx="${i}"${!checked && maxReached ? ' data-max' : ''}>
+        <span class="vc-check">${checked ? '&#10003;' : '&#9675;'}</span>
+        <span class="vc-name">${esc(v.nom)}</span>
+        <span class="vc-desc">${esc(v.desc)}</span>
+      </button>`;
+    }).join('');
+  }
+
+  // ---- Compétences ----
+  function renderCompetences() {
+    const cont = document.getElementById('competencesList');
+    const datalist = '<datalist id="dlComp">' + BANQUE_COMPETENCES.map(c => `<option value="${esc(c)}">`).join('') + '</datalist>';
+    cont.innerHTML = datalist + '<div class="row-list" data-rows-id="competences"></div>' +
+      '<div class="help" style="margin-top:6px;">Objectif : 5 à 10 compétences — actuellement ' + S.competences.length + '</div>';
+    const list = cont.querySelector('.row-list');
+    list.innerHTML = S.competences.map((c, i) => `
+      <div class="row-item">
+        <div class="field field-skill">
+          <label>Compétence</label>
+          <input type="text" data-idx="${i}" data-field="nom" value="${esc(c.nom)}" list="dlComp" placeholder="Ex : Communication">
+        </div>
+        <div class="field field-rating">
+          <label>Appréciation (1-10)</label>
+          <select data-idx="${i}" data-field="gout">
+            ${Array.from({ length: 10 }, (_, n) => `<option value="${n+1}"${c.gout === n+1 ? ' selected' : ''}>${n+1}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field field-dev">
+          <input type="checkbox" id="devComp${i}" data-idx="${i}" data-field="developper" ${c.developper ? 'checked' : ''}>
+          <label for="devComp${i}">À développer</label>
+        </div>
+        <div class="field-del">
+          <button class="btn btn-icon btn-ghost btn-sm" data-del-idx="${i}" aria-label="Supprimer cette compétence" title="Supprimer">&times;</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderExperiences() {
+    const cont = document.getElementById('interetsExperiences');
+    cont.innerHTML = S.interets.experiences.map((e, i) => `
+      <div class="plan-row" style="margin-bottom:8px;">
+        <span class="row-num">${i + 1}</span>
+        <div class="row-fields">
+          <div class="field field-wider">
+            <label>Ce que je faisais</label>
+            <textarea data-idx="${i}" data-field="activite" rows="2" placeholder="Décrivez ce que vous faisiez">${esc(e.activite)}</textarea>
+          </div>
+          <div class="field field-wider">
+            <label>Ce que j'appréciais le plus</label>
+            <textarea data-idx="${i}" data-field="apprecie" rows="2" placeholder="Pourquoi c'était motivant ?">${esc(e.apprecie)}</textarea>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ---- Plan : valeurs ----
+  function renderPlanValeurs() {
+    const list = document.getElementById('planValeursList');
+    const noms = S.valeurs.map((v, i) => v ? VALEURS[i].nom : null).filter(Boolean);
+    const dl = '<datalist id="dlPlanValeurs">' + noms.map(n => `<option value="${esc(n)}">`).join('') + '</datalist>';
+    list.innerHTML = dl + '<div class="row-list" data-rows-id="planValeurs">' + S.plan.valeurs.map((v, i) => `
+      <div class="plan-row">
+        <span class="row-num">${i + 1}</span>
+        <div class="row-fields">
+          <div class="field field-skill">
+            <label>Valeur</label>
+            <input type="text" data-idx="${i}" data-field="valeur" value="${esc(v.valeur)}" list="dlPlanValeurs" placeholder="Choisir parmi vos valeurs">
+          </div>
+          <div class="field field-wider">
+            <label>Signification pour vous</label>
+            <textarea data-idx="${i}" data-field="signification" rows="2" placeholder="En quoi cette valeur guide-t-elle votre parcours ?">${esc(v.signification)}</textarea>
+          </div>
+        </div>
+        <div class="row-del">
+          <button class="btn btn-icon btn-ghost btn-sm" data-del-idx="${i}" aria-label="Supprimer">&times;</button>
+        </div>
+      </div>
+    `).join('') + '</div>';
+    document.getElementById('btnAddPlanValeur').disabled = S.plan.valeurs.length >= 4;
+  }
+
+  // ---- Plan : objectifs ----
+  function renderPlanObjectifs() {
+    const list = document.getElementById('planObjectifsList');
+    list.innerHTML = '<div class="row-list" data-rows-id="planObjectifs">' + S.plan.objectifs.map((o, i) => `
+      <div class="plan-row">
+        <span class="row-num">${i + 1}</span>
+        <div class="row-fields">
+          <div class="field field-wider">
+            <label>Objectif SMART</label>
+            <textarea data-idx="${i}" data-field="objectif" rows="2" placeholder="Ex : Obtenir une certification PMP avant le 30/06/2027">${esc(o.objectif)}</textarea>
+          </div>
+          <div class="field" style="flex:1.2;">
+            <label>Mesure de réussite</label>
+            <input type="text" data-idx="${i}" data-field="mesure" value="${esc(o.mesure)}" placeholder="Ex : Certification obtenue">
+          </div>
+          <div class="field" style="flex:0.8;">
+            <label>Échéance</label>
+            <input type="date" data-idx="${i}" data-field="echeance" value="${esc(o.echeance)}">
+          </div>
+        </div>
+        <div class="row-del">
+          <button class="btn btn-icon btn-ghost btn-sm" data-del-idx="${i}" aria-label="Supprimer">&times;</button>
+        </div>
+      </div>
+    `).join('') + '</div>';
+    document.getElementById('btnAddPlanObjectif').disabled = S.plan.objectifs.length >= 8;
+  }
+
+  // ---- Plan : obstacles ----
+  function renderPlanObstacles() {
+    const list = document.getElementById('planObstaclesList');
+    list.innerHTML = '<div class="row-list" data-rows-id="planObstacles">' + S.plan.obstacles.map((o, i) => `
+      <div class="plan-row">
+        <span class="row-num">${i + 1}</span>
+        <div class="row-fields">
+          <div class="field field-wider">
+            <label>Défi identifié</label>
+            <textarea data-idx="${i}" data-field="defi" rows="2" placeholder="Ex : Manque d'expérience en gestion de budget">${esc(o.defi)}</textarea>
+          </div>
+          <div class="field field-wider">
+            <label>Comment le surmonter</label>
+            <textarea data-idx="${i}" data-field="solution" rows="2" placeholder="Ex : Demander à participer à un projet budgétaire">${esc(o.solution)}</textarea>
+          </div>
+        </div>
+        <div class="row-del">
+          <button class="btn btn-icon btn-ghost btn-sm" data-del-idx="${i}" aria-label="Supprimer">&times;</button>
+        </div>
+      </div>
+    `).join('') + '</div>';
+    document.getElementById('btnAddPlanObstacle').disabled = S.plan.obstacles.length >= 5;
+  }
+
+  // ---- Checklist ----
+  function renderChecklist() {
+    const cont = document.getElementById('checklistGrid');
+    cont.innerHTML = CHECKLIST.map((item, i) => `
+      <div class="checklist-item">
+        <input type="checkbox" id="cl${i}" data-cidx="${i}" ${S.checklist[i] ? 'checked' : ''}>
+        <label for="cl${i}" class="checklist-label">${esc(item.texte)}</label>
+      </div>
+    `).join('');
+  }
+
+  /* =============================================================
+     6. NAVIGATION ENTRE ÉTAPES
+     ============================================================= */
+  function afficherEtape(idx) {
+    S.step = Math.max(0, Math.min(3, idx));
+    document.querySelectorAll('.section-step').forEach((s, i) => {
+      s.classList.toggle('active', i === S.step);
+    });
+    mettreAJourSidebar();
+    mettreAJourProgression();
+    document.querySelector('.main').scrollTop = 0;
+    sauvegarder();
+  }
+
+  /* =============================================================
+     7. EXPORT MARKDOWN
+     ============================================================= */
+  function todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function todayFR() {
+    return new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function buildMarkdown() {
+    let md = '';
+    md += '---\n';
+    md += 'type: exploration-carriere\n';
+    md += 'created: ' + todayISO() + '\n';
+    md += 'tags:\n  - carriere\n  - exploration\n  - plan-action\n';
+    md += '---\n\n';
+    md += '# Exploration de carrière — Résultats\n\n';
+    md += '> Généré le ' + todayFR() + '\n\n';
+    md += '---\n\n';
+
+    // ---- Étape 1 ----
+    md += '## Étape 1 — Auto-évaluations\n\n';
+
+    // Valeurs
+    const sel = VALEURS.filter((_, i) => S.valeurs[i]);
+    md += '### Valeurs (' + sel.length + '/10 sélectionnées)\n\n';
+    sel.forEach(v => {
+      md += '- [x] **' + escMd(v.nom) + '** — ' + escMd(v.desc) + '\n';
+    });
+    if (sel.length === 0) md += '_Aucune valeur sélectionnée._\n';
+    md += '\n';
+
+    // Compétences
+    md += '### Compétences\n\n';
+    if (S.competences.length > 0) {
+      md += '| Compétence | Appréciation (1-10) | À développer |\n';
+      md += '| --- | --- | --- |\n';
+      S.competences.filter(c => c.nom).forEach(c => {
+        md += '| ' + escMd(c.nom) + ' | ' + c.gout + ' | ' + (c.developper ? 'Oui' : 'Non') + ' |\n';
+      });
+    } else { md += '_Aucune compétence renseignée._\n'; }
+    md += '\n';
+
+    // Intérêts
+    md += '### Intérêts\n\n';
+    md += '**Expériences de travail appréciées**\n\n';
+    S.interets.experiences.forEach((e, i) => {
+      if ((e.activite || '').trim() || (e.apprecie || '').trim()) {
+        md += '1. **' + escMd(e.activite || '—') + '**\n   - Ce que j\'appréciais : ' + escMd(e.apprecie || '—') + '\n';
+      }
+    });
+    if (S.interets.experiences.every(e => !(e.activite||'').trim() && !(e.apprecie||'').trim()))
+      md += '_Aucune expérience renseignée._\n';
+    md += '\n';
+    if ((S.interets.activites || '').trim()) {
+      md += '**Activités et loisirs**\n\n' + escMd(S.interets.activites) + '\n\n';
+    }
+    if ((S.interets.sujets || '').trim()) {
+      md += '**Sujets et causes passionnantes**\n\n' + escMd(S.interets.sujets) + '\n\n';
+    }
+
+    // ---- Étape 2 ----
+    md += '---\n\n## Étape 2 — Évaluation des options de carrière\n\n';
+    md += '| Champ | Réponse |\n| --- | --- |\n';
+    const optLabels = {
+      objectif: 'Objectif de carrière', role: 'Rôle ciblé', lieu: 'Lieu souhaité',
+      disponibilite: 'Disponibilité des postes', correspondanceValeurs: 'Correspondance avec vos valeurs',
+      competencesRequises: 'Compétences clés requises', autoEvaluation: 'Auto-évaluation',
+      forces: 'Forces à exploiter', aDevelopperCourt: 'À développer (court terme)',
+      aDevelopperLong: 'À développer (long terme)'
+    };
+    let hasOpt = false;
+    for (const [k, label] of Object.entries(optLabels)) {
+      if ((S.option[k] || '').trim()) {
+        md += '| ' + label + ' | ' + escMd(S.option[k]) + ' |\n';
+        hasOpt = true;
+      }
+    }
+    if (!hasOpt) md += '| — | _Aucune réponse._ |\n';
+    md += '\n';
+
+    // ---- Étape 3 ----
+    md += '---\n\n## Étape 3 — Plan de carrière\n\n';
+
+    md += '### Partie I — Objectifs et Vision\n\n';
+    const visionFields = [
+      ['court', 'Objectifs à court terme'],
+      ['moyen', 'Objectifs à moyen terme (2-5 ans)'],
+      ['long', 'Objectifs à long terme (5+ ans)'],
+      ['vision', 'Énoncé de vision']
+    ];
+    visionFields.forEach(([k, label]) => {
+      if ((S.plan[k] || '').trim()) md += '#### ' + label + '\n\n' + escMd(S.plan[k]) + '\n\n';
+    });
+
+    md += '### Partie II — Valeurs\n\n';
+    const filledPV = S.plan.valeurs.filter(v => (v.valeur||'').trim());
+    filledPV.forEach(v => {
+      md += '- **' + escMd(v.valeur) + '** : ' + escMd(v.signification) + '\n';
+    });
+    if (!filledPV.length) md += '_Aucune valeur renseignée._\n';
+    md += '\n';
+
+    md += '### Partie III — Plan d\'action\n\n';
+    const filledPO = S.plan.objectifs.filter(o => (o.objectif||'').trim());
+    if (filledPO.length) {
+      md += '| # | Objectif SMART | Mesure | Échéance |\n| --- | --- | --- | --- |\n';
+      filledPO.forEach((o, i) => {
+        md += '| ' + (i+1) + ' | ' + escMd(o.objectif) + ' | ' + escMd(o.mesure||'—') + ' | ' + escMd(o.echeance||'—') + ' |\n';
+      });
+    } else { md += '_Aucun objectif renseigné._\n'; }
+    md += '\n';
+
+    md += '### Partie IV — Obstacles\n\n';
+    const filledOb = S.plan.obstacles.filter(o => (o.defi||'').trim());
+    filledOb.forEach((o, i) => {
+      md += (i+1) + '. **' + escMd(o.defi) + '**\n   - Plan de mitigation : ' + escMd(o.solution || '—') + '\n';
+    });
+    if (!filledOb.length) md += '_Aucun obstacle identifié._\n';
+    md += '\n';
+
+    // ---- Étape 4 ----
+    md += '---\n\n## Étape 4 — Checklist chercheur d\'emploi\n\n';
+    CHECKLIST.forEach((item, i) => {
+      md += (S.checklist[i] ? '- [x] ' : '- [ ] ') + escMd(item.texte) + '\n';
+    });
+    md += '\n---\n\n_Fichier généré par l\'application « Exploration de carrière »._\n';
+    return md;
+  }
+
+  function exporterMarkdown() {
+    const text = buildMarkdown();
+    document.getElementById('exportMarkdown').value = text;
+    document.getElementById('modalExport').classList.add('visible');
+  }
+
+  function copierMarkdown() {
+    const text = document.getElementById('exportMarkdown').value;
+    // Fallback si clipboard API indisponible (file://)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => afficherToast('Copie dans le presse-papiers'))
+        .catch(() => copierFallback(text));
+    } else {
+      copierFallback(text);
+    }
+  }
+  function copierFallback(text) {
+    const ta = document.getElementById('exportMarkdown');
+    ta.select();
+    document.execCommand('copy');
+    afficherToast('Copie dans le presse-papiers');
+  }
+
+  function telechargerMarkdown() {
+    const text = document.getElementById('exportMarkdown').value;
+    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Exploration de carriere — Resultats (' + todayISO() + ').md';
+    a.click();
+    URL.revokeObjectURL(url);
+    afficherToast('Fichier telecharge');
+  }
+
+  /* =============================================================
+     8. LIAISON D'ÉVÉNEMENTS
+     ============================================================= */
+  function bindEvents() {
+
+    // ---- Navigation ----
+    document.getElementById('btnPrev').addEventListener('click', () => afficherEtape(S.step - 1));
+    document.getElementById('btnNext').addEventListener('click', () => {
+      if (S.step === 3) { exporterMarkdown(); } else { afficherEtape(S.step + 1); }
+    });
+
+    // ---- Clavier ----
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowRight' && S.step < 3) afficherEtape(S.step + 1);
+      if (e.key === 'ArrowLeft' && S.step > 0) afficherEtape(S.step - 1);
+    });
+
+    // ---- Valeurs (délégation) ----
+    document.getElementById('valuesGrid').addEventListener('click', e => {
+      const card = e.target.closest('.value-card');
+      if (!card) return;
+      const idx = +card.dataset.vidx;
+      if (!S.valeurs[idx] && S.valeurs.filter(Boolean).length >= 10) {
+        afficherToast('Maximum 10 valeurs atteint — décochez une valeur d\'abord');
+        return;
+      }
+      S.valeurs[idx] = !S.valeurs[idx];
+      renderValeurs();
+      mettreAJourSidebar();
+      mettreAJourProgression();
+      sauvegarder();
+    });
+
+    // ---- Compétences (input delegation) ----
+    document.getElementById('competencesList').addEventListener('input', e => {
+      const t = e.target;
+      const idx = +t.dataset.idx;
+      if (isNaN(idx)) return;
+      if (t.dataset.field === 'nom') {
+        S.competences[idx].nom = t.value;
+      } else if (t.dataset.field === 'gout') {
+        S.competences[idx].gout = +t.value;
+      }
+      // Mettre à jour le compteur sans rerender les inputs
+      const helpEl = document.getElementById('competencesList').querySelector('.help');
+      if (helpEl) helpEl.textContent = 'Objectif : 5 à 10 compétences — actuellement ' + S.competences.filter(c => c.nom).length;
+      mettreAJourSidebar();
+      mettreAJourProgression();
+      sauvegarder();
+    });
+    document.getElementById('competencesList').addEventListener('change', e => {
+      const t = e.target;
+      const idx = +t.dataset.idx;
+      if (isNaN(idx) || t.dataset.field !== 'developper') return;
+      S.competences[idx].developper = t.checked;
+      sauvegarder();
+    });
+    document.getElementById('competencesList').addEventListener('click', e => {
+      const del = e.target.closest('[data-del-idx]');
+      if (del) {
+        S.competences.splice(+del.dataset.delIdx, 1);
+        renderCompetences();
+        mettreAJourSidebar();
+        mettreAJourProgression();
+        sauvegarder();
+      }
+    });
+    document.getElementById('btnAddCompetence').addEventListener('click', () => {
+      if (S.competences.length >= 12) { afficherToast('Maximum atteint'); return; }
+      S.competences.push({ nom: '', gout: 5, developper: false });
+      renderCompetences();
+      sauvegarder();
+    });
+
+    // ---- Intérêts (expériences input delegation) ----
+    document.getElementById('interetsExperiences').addEventListener('input', e => {
+      const t = e.target;
+      const idx = +t.dataset.idx;
+      if (isNaN(idx)) return;
+      S.interets.experiences[idx][t.dataset.field] = t.value;
+      mettreAJourSidebar();
+      mettreAJourProgression();
+      sauvegarder();
+    });
+    document.getElementById('inActivites').addEventListener('input', e => { S.interets.activites = e.target.value; mettreAJourSidebar(); mettreAJourProgression(); sauvegarder(); });
+    document.getElementById('inSujets').addEventListener('input', e => { S.interets.sujets = e.target.value; mettreAJourSidebar(); mettreAJourProgression(); sauvegarder(); });
+
+    // ---- Option (Assignment 2) input delegation ----
+    document.querySelectorAll('#section-1 input, #section-1 textarea').forEach(el => {
+      el.addEventListener('input', e => {
+        const key = OPT_KEYS[e.target.id];
+        if (!key) return;
+        S.option[key] = e.target.value;
+        mettreAJourSidebar();
+        mettreAJourProgression();
+        sauvegarder();
+      });
+    });
+
+    // ---- Plan (valeurs, objectifs, obstacles) input delegation ----
+    function bindPlanRows(containerSel, stateKey) {
+      const cont = document.querySelector(containerSel);
+      if (!cont) return;
+      cont.addEventListener('input', e => {
+        const t = e.target;
+        const idx = +t.dataset.idx;
+        if (isNaN(idx)) return;
+        S.plan[stateKey][idx][t.dataset.field] = t.value;
+        mettreAJourSidebar();
+        mettreAJourProgression();
+        sauvegarder();
+      });
+      cont.addEventListener('click', e => {
+        const del = e.target.closest('[data-del-idx]');
+        if (!del) return;
+        S.plan[stateKey].splice(+del.dataset.delIdx, 1);
+        renderers[stateKey]();
+        mettreAJourSidebar();
+        mettreAJourProgression();
+        sauvegarder();
+      });
+    }
+
+    // Plan parties I (textareas statices)
+    ['court','moyen','long','vision'].forEach(k => {
+      const el = document.getElementById('plan' + k.charAt(0).toUpperCase() + k.slice(1));
+      if (el) el.addEventListener('input', e => { S.plan[k] = e.target.value; mettreAJourSidebar(); mettreAJourProgression(); sauvegarder(); });
+    });
+
+    bindPlanRows('#planValeursList', 'valeurs');
+    bindPlanRows('#planObjectifsList', 'objectifs');
+    bindPlanRows('#planObstaclesList', 'obstacles');
+
+    // ---- Checklist ----
+    document.getElementById('checklistGrid').addEventListener('change', e => {
+      if (e.target.dataset.cidx === undefined) return;
+      S.checklist[+e.target.dataset.cidx] = e.target.checked;
+      mettreAJourSidebar();
+      mettreAJourProgression();
+      sauvegarder();
+    });
+
+    // ---- Boutons d'ajout ----
+    document.getElementById('btnAddPlanValeur').addEventListener('click', () => {
+      if (S.plan.valeurs.length >= 4) { afficherToast('Maximum 4 valeurs dans le plan'); return; }
+      S.plan.valeurs.push({ valeur: '', signification: '' });
+      renderPlanValeurs();
+      sauvegarder();
+    });
+    document.getElementById('btnAddPlanObjectif').addEventListener('click', () => {
+      if (S.plan.objectifs.length >= 8) { afficherToast('Maximum 8 objectifs SMART'); return; }
+      S.plan.objectifs.push({ objectif: '', mesure: '', echeance: '' });
+      renderPlanObjectifs();
+      sauvegarder();
+    });
+    document.getElementById('btnAddPlanObstacle').addEventListener('click', () => {
+      if (S.plan.obstacles.length >= 5) { afficherToast('Maximum 5 obstacles'); return; }
+      S.plan.obstacles.push({ defi: '', solution: '' });
+      renderPlanObstacles();
+      sauvegarder();
+    });
+
+    // ---- Export / Reset ----
+    document.getElementById('btnExport').addEventListener('click', exporterMarkdown);
+    document.getElementById('btnCopy').addEventListener('click', copierMarkdown);
+    document.getElementById('btnDownload').addEventListener('click', telechargerMarkdown);
+    document.getElementById('btnCloseModal').addEventListener('click', () => document.getElementById('modalExport').classList.remove('visible'));
+    document.getElementById('btnCloseModal2').addEventListener('click', () => document.getElementById('modalExport').classList.remove('visible'));
+    document.getElementById('modalExport').addEventListener('click', e => {
+      if (e.target === e.currentTarget) document.getElementById('modalExport').classList.remove('visible');
+    });
+    document.getElementById('btnReset').addEventListener('click', () => {
+      if (confirm('Toutes vos donnees seront supprimees. Continuer ?')) {
+        localStorage.removeItem(STORAGE_KEY);
+        Object.assign(S, etatDefaut());
+        renderAll();
+        afficherEtape(0);
+        afficherToast('Reinitialisation effectuee');
+      }
+    });
+  }
+
+  const renderers = {
+    valeurs: renderValeurs,
+    competences: renderCompetences,
+    experiences: renderExperiences,
+    planValeurs: renderPlanValeurs,
+    planObjectifs: renderPlanObjectifs,
+    planObstacles: renderPlanObstacles,
+    checklist: renderChecklist,
+    option: () => {
+      document.querySelectorAll('#section-1 input, #section-1 textarea').forEach(el => {
+        const key = OPT_KEYS[el.id];
+        if (key && key in S.option) el.value = S.option[key];
+      });
+    },
+    planStatic: () => {
+      ['court','moyen','long','vision'].forEach(k => {
+        const el = document.getElementById('plan' + k.charAt(0).toUpperCase() + k.slice(1));
+        if (el) el.value = S.plan[k];
+      });
+    },
+    interetsStatic: () => {
+      document.getElementById('inActivites').value = S.interets.activites;
+      document.getElementById('inSujets').value = S.interets.sujets;
+    }
+  };
+
+  /* =============================================================
+     9. RENDU INITIAL COMPLET
+     ============================================================= */
+  function renderAll() {
+    renderValeurs();
+    renderCompetences();
+    renderExperiences();
+    renderers.option();
+    renderPlanValeurs();
+    renderPlanObjectifs();
+    renderPlanObstacles();
+    renderers.planStatic();
+    renderers.interetsStatic();
+    renderChecklist();
+  }
+
+  /* =============================================================
+     10. INITIALISATION
+     ============================================================= */
+  S = charger();
+  initSidebar();
+  bindEvents();
+  renderAll();
+  afficherEtape(S.step);
+
+  </script>
+</body>
+</html>
